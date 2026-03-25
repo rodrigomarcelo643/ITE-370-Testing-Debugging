@@ -1,189 +1,201 @@
-
-import React, { useState } from 'react';
-import { AuthService } from '../services/authService';
-import { SecurityValidator } from '../utils/security';
-import type { TestResult, SecurityTest } from '../types';
-import { Bug, Shield, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import React, { useState } from "react";
+import { AuthService } from "../services/authService";
+import { SecurityValidator } from "../utils/security";
+import type { TestResult, SecurityTest } from "../types";
+import { Bug, Shield, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 
 export const TestingPanel: React.FC = () => {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [runningTests, setRunningTests] = useState(false);
-  const [/*selectedTest*/, setSelectedTest] = useState<string | null>(null);
+  const [, /*selectedTest*/ setSelectedTest] = useState<string | null>(null);
 
   // Unit tests
   const runUnitTests = async () => {
     setRunningTests(true);
     const results: TestResult[] = [];
-    
+
     const unitTests = [
-      { name: 'Valid Login', input: 'admin/Admin123', expected: 'success' },
-      { name: 'Invalid Password', input: 'admin/WrongPass', expected: 'failure' },
-      { name: 'Invalid Username', input: 'nonexistent/Admin123', expected: 'failure' },
-      { name: 'Empty Credentials', input: 'empty/empty', expected: 'failure' },
+      { name: "Valid Login", input: "admin/Admin123", expected: "success" },
+      {
+        name: "Invalid Password",
+        input: "admin/WrongPass",
+        expected: "failure",
+      },
+      {
+        name: "Invalid Username",
+        input: "nonexistent/Admin123",
+        expected: "failure",
+      },
+      { name: "Empty Credentials", input: "empty/empty", expected: "failure" },
     ];
-    
+
     for (const test of unitTests) {
-      const [username, password] = test.input.split('/');
+      const [username, password] = test.input.split("/");
       const result = await AuthService.login({ username, password });
-      
+
       results.push({
         testName: test.name,
         input: test.input,
         expected: test.expected,
-        actual: result.success ? 'success' : 'failure',
-        passed: (result.success && test.expected === 'success') || 
-                (!result.success && test.expected === 'failure'),
-        timestamp: new Date()
+        actual: result.success ? "success" : "failure",
+        passed:
+          (result.success && test.expected === "success") ||
+          (!result.success && test.expected === "failure"),
+        timestamp: new Date(),
       });
     }
-    
-    setTestResults(prev => [...prev, ...results]);
+
+    setTestResults((prev) => [...prev, ...results]);
     setRunningTests(false);
   };
-  
+
   // Integration tests
   const runIntegrationTests = async () => {
     setRunningTests(true);
     const results: TestResult[] = [];
-    
+
     const testFlows = [
-      { 
-        name: 'Full Login Flow - Valid User',
+      {
+        name: "Full Login Flow - Valid User",
         steps: [
-          { action: 'Enter username', value: 'admin' },
-          { action: 'Enter password', value: 'Admin123' },
-          { action: 'Submit', value: '' }
+          { action: "Enter username", value: "admin" },
+          { action: "Enter password", value: "Admin123" },
+          { action: "Submit", value: "" },
         ],
-        expected: 'success'
+        expected: "success",
       },
       {
-        name: 'Full Login Flow - Invalid User',
+        name: "Full Login Flow - Invalid User",
         steps: [
-          { action: 'Enter username', value: 'hacker' },
-          { action: 'Enter password', value: 'hack123' },
-          { action: 'Submit', value: '' }
+          { action: "Enter username", value: "hacker" },
+          { action: "Enter password", value: "hack123" },
+          { action: "Submit", value: "" },
         ],
-        expected: 'failure'
-      }
+        expected: "failure",
+      },
     ];
-    
+
     for (const flow of testFlows) {
       const loginData = {
         username: flow.steps[0].value,
-        password: flow.steps[1].value
+        password: flow.steps[1].value,
       };
       const result = await AuthService.login(loginData);
-      
+
       results.push({
         testName: flow.name,
         input: `${loginData.username}/${loginData.password}`,
         expected: flow.expected,
-        actual: result.success ? 'success' : 'failure',
-        passed: (result.success && flow.expected === 'success') || 
-                (!result.success && flow.expected === 'failure'),
-        timestamp: new Date()
+        actual: result.success ? "success" : "failure",
+        passed:
+          (result.success && flow.expected === "success") ||
+          (!result.success && flow.expected === "failure"),
+        timestamp: new Date(),
       });
     }
-    
-    setTestResults(prev => [...prev, ...results]);
+
+    setTestResults((prev) => [...prev, ...results]);
     setRunningTests(false);
   };
-  
+
   // Security tests
   const runSecurityTests = async () => {
     setRunningTests(true);
     const results: TestResult[] = [];
-    
+
     const securityTests: SecurityTest[] = [
       {
-        name: 'SQL Injection - OR 1=1',
+        name: "SQL Injection - OR 1=1",
         input: "admin' OR '1'='1",
-        description: 'Attempt to bypass authentication',
-        expectedBehavior: 'Should be blocked'
+        description: "Attempt to bypass authentication",
+        expectedBehavior: "Should be blocked",
       },
       {
-        name: 'SQL Injection - Comment Attack',
+        name: "SQL Injection - Comment Attack",
         input: "admin' --",
-        description: 'Attempt to comment out password check',
-        expectedBehavior: 'Should be blocked'
+        description: "Attempt to comment out password check",
+        expectedBehavior: "Should be blocked",
       },
       {
-        name: 'SQL Injection - Union Select',
+        name: "SQL Injection - Union Select",
         input: "admin' UNION SELECT * FROM users --",
-        description: 'Attempt to extract data',
-        expectedBehavior: 'Should be blocked'
+        description: "Attempt to extract data",
+        expectedBehavior: "Should be blocked",
       },
       {
-        name: 'XSS - Script Tag',
+        name: "XSS - Script Tag",
         input: "<script>alert('xss')</script>",
-        description: 'Attempt to inject JavaScript',
-        expectedBehavior: 'Should be sanitized'
+        description: "Attempt to inject JavaScript",
+        expectedBehavior: "Should be sanitized",
       },
       {
-        name: 'XSS - Image OnError',
+        name: "XSS - Image OnError",
         input: "<img src=x onerror=alert('xss')>",
-        description: 'Attempt to trigger JavaScript via image',
-        expectedBehavior: 'Should be sanitized'
+        description: "Attempt to trigger JavaScript via image",
+        expectedBehavior: "Should be sanitized",
       },
       {
-        name: 'SQL Injection - Multiple Statements',
+        name: "SQL Injection - Multiple Statements",
         input: "admin'; DROP TABLE users; --",
-        description: 'Attempt to drop database table',
-        expectedBehavior: 'Should be blocked'
-      }
+        description: "Attempt to drop database table",
+        expectedBehavior: "Should be blocked",
+      },
     ];
-    
+
     for (const test of securityTests) {
       const hasSQLInjection = SecurityValidator.hasSQLInjection(test.input);
       const hasXSS = SecurityValidator.hasXSS(test.input);
-      const sanitized = SecurityValidator.sanitizeInput(test.input);
-      
-      const loginResult = await AuthService.login({ 
-        username: test.input, 
-        password: 'anypass' 
+
+      const loginResult = await AuthService.login({
+        username: test.input,
+        password: "anypass",
       });
-      
+
       const isBlocked = !loginResult.success;
       const passed = isBlocked && (hasSQLInjection || hasXSS);
-      
+
       results.push({
         testName: test.name,
         input: test.input,
-        expected: 'Blocked',
-        actual: isBlocked ? 'Blocked' : 'Allowed',
+        expected: "Blocked",
+        actual: isBlocked ? "Blocked" : "Allowed",
         passed: passed,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
-    
-    setTestResults(prev => [...prev, ...results]);
+
+    setTestResults((prev) => [...prev, ...results]);
     setRunningTests(false);
   };
-  
+
   const clearTests = () => {
     setTestResults([]);
   };
-  
+
   const getTestStats = () => {
     const total = testResults.length;
-    const passed = testResults.filter(r => r.passed).length;
+    const passed = testResults.filter((r) => r.passed).length;
     const failed = total - passed;
     return { total, passed, failed };
   };
-  
+
   const stats = getTestStats();
-  
+
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Bug className="w-8 h-8 text-purple-600" />
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Testing & Debugging Panel</h2>
-            <p className="text-sm text-gray-600">Unit, Integration, and Security Testing</p>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Testing & Debugging Panel
+            </h2>
+            <p className="text-sm text-gray-600">
+              Unit, Integration, and Security Testing
+            </p>
           </div>
         </div>
-        
+
         {stats.total > 0 && (
           <div className="flex gap-4 text-sm">
             <div className="text-center">
@@ -201,7 +213,7 @@ export const TestingPanel: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Test Buttons */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <button
@@ -233,14 +245,14 @@ export const TestingPanel: React.FC = () => {
           Clear Results
         </button>
       </div>
-      
+
       {runningTests && (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p className="mt-2 text-gray-600">Running tests...</p>
         </div>
       )}
-      
+
       {/* Test Results */}
       {testResults.length > 0 && !runningTests && (
         <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -249,9 +261,9 @@ export const TestingPanel: React.FC = () => {
             <div
               key={index}
               className={`p-4 rounded-lg border ${
-                result.passed 
-                  ? 'bg-green-50 border-green-200' 
-                  : 'bg-red-50 border-red-200'
+                result.passed
+                  ? "bg-green-50 border-green-200"
+                  : "bg-red-50 border-red-200"
               }`}
               onMouseEnter={() => setSelectedTest(result.testName)}
               onMouseLeave={() => setSelectedTest(null)}
@@ -264,15 +276,28 @@ export const TestingPanel: React.FC = () => {
                     ) : (
                       <XCircle className="w-5 h-5 text-red-600" />
                     )}
-                    <span className="font-medium text-gray-800">{result.testName}</span>
+                    <span className="font-medium text-gray-800">
+                      {result.testName}
+                    </span>
                     <span className="text-xs text-gray-500">
                       {result.timestamp.toLocaleTimeString()}
                     </span>
                   </div>
                   <div className="text-sm space-y-1">
-                    <p><span className="text-gray-600">Input:</span> <code className="bg-gray-100 px-1 rounded">{result.input}</code></p>
-                    <p><span className="text-gray-600">Expected:</span> {result.expected}</p>
-                    <p><span className="text-gray-600">Actual:</span> {result.actual}</p>
+                    <p>
+                      <span className="text-gray-600">Input:</span>{" "}
+                      <code className="bg-gray-100 px-1 rounded">
+                        {result.input}
+                      </code>
+                    </p>
+                    <p>
+                      <span className="text-gray-600">Expected:</span>{" "}
+                      {result.expected}
+                    </p>
+                    <p>
+                      <span className="text-gray-600">Actual:</span>{" "}
+                      {result.actual}
+                    </p>
                   </div>
                 </div>
                 {!result.passed && (
@@ -283,13 +308,15 @@ export const TestingPanel: React.FC = () => {
           ))}
         </div>
       )}
-      
+
       {/* Security Tips */}
       <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
         <div className="flex items-start gap-3">
           <Shield className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-medium text-yellow-800">Security Testing Best Practices</h4>
+            <h4 className="font-medium text-yellow-800">
+              Security Testing Best Practices
+            </h4>
             <ul className="text-sm text-yellow-700 mt-2 space-y-1">
               <li>• Always test with malicious inputs (SQL injection, XSS)</li>
               <li>• Verify error messages don't expose system details</li>
